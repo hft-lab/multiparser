@@ -10,13 +10,33 @@ from datetime import datetime
 
 class Binance:
     def __init__(self):
-        self.client_name='Binance'
+        self.client_name = 'Binance'
         self.headers = {"Content-Type": "application/json"}
         self.urlOrderbooks = "https://fapi.binance.com/fapi/v1/depth?limit=5&symbol="
         self.urlMarkets = "https://fapi.binance.com/fapi/v1/exchangeInfo"
         self.fees = 0.00036
         self.requestLimit = 1200
         self.markets = {}
+        self.timestamp_diff = datetime.utcnow().timestamp() - time.time()
+        self.fundings = {}
+
+    async def get_fundings(self):
+        url = f"https://fapi.binance.com/fapi/v1/premiumIndex"
+        response = requests.get(url)
+        markets = response.json()
+        ts = str(round(markets[0]['nextFundingTime'] / 1000 + self.timestamp_diff, 0))
+        for market in markets:
+            if (market['marginAsset'] == 'USDT') & (market['contractType'] == 'PERPETUAL') & (
+                    market['underlyingType'] == 'COIN') & (market['status'] == 'TRADING'):
+                if not self.fundings.get(ts):
+                    self.fundings.update({ts: {}})
+                new_record = [float(market['interestRate']), datetime.utcnow().timestamp(), float(market['indexPrice'])]
+                if not self.fundings[ts].get(market['symbol']):
+                    self.fundings[ts].update({market['symbol']: [new_record]})
+                else:
+                    self.fundings[ts][market['symbol']].append(new_record)
+        print(self.fundings)
+        return self.fundings
 
     def get_markets(self):
         markets = requests.get(url=self.urlMarkets, headers=self.headers).json()
@@ -26,7 +46,6 @@ class Binance:
                 coin = market['baseAsset']
                 self.markets.update({coin: market['symbol']})
         return self.markets
-
 
     # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/Order-Book
     async def get_orderbook(self, symbol):
@@ -40,12 +59,13 @@ class Binance:
                 except Exception as error:
                     print('Error from Client. Binance Module:', symbol, error)
 
-async def main():
-    client = Binance()
-    print(client.get_markets())
-
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    client = Binance()
 
-
+    # async def main():
+    #
+    #     time.sleep(60)
+    #
+    # asyncio.run(main())
+    asyncio.run(client.get_fundings())

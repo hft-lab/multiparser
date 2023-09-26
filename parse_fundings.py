@@ -4,7 +4,6 @@ from Logger import Logging
 from datetime import datetime
 
 from Define_markets import coins_symbols_client
-from arbitrage_finder import ArbitrageFinder
 
 from Core import timeit
 from Core import gather_dict
@@ -13,29 +12,16 @@ from Clients.kraken import Kraken
 from Clients.binance import Binance
 from Clients.bitfinex import Bitfinex
 from Clients.dydx import DyDx
-from Clients.bitspay import Bitspay
-from Clients.ascendex import Ascendex
 
 ob_zero = {'top_bid': 0, 'top_ask': 0, 'bid_vol': 0, 'ask_vol': 0, 'ts_exchange': 0, 'ts_start': 0, 'ts_end': 0}
 
 
-class MultiParser:
+class FundingParser:
 
     def __init__(self):
-        self.clients_list = [DyDx(), Kraken(), Binance()]#, Bitfinex()]  # , Bitspay(), Ascendex()]
+        self.clients_list = [DyDx(), Kraken(), Binance()]  # , Bitfinex()]  # , Bitspay(), Ascendex()]
         self.markets = coins_symbols_client(self.clients_list)  # {coin: {symbol:client(),...},...}
         self.clients_data = self.get_clients_data()
-        self.finder = ArbitrageFinder([x for x in self.markets.keys()], self.clients_list)
-
-
-    @staticmethod
-    @timeit
-    async def ob_top(client, symbol):
-        try:
-            return await client.get_orderbook(symbol)
-        except Exception as error:
-            print(f'Exception из ob_top, биржа:{client.__class__.__name__}, рынок: {symbol}, ошибка: {error}')
-            return ob_zero
 
     def get_clients_data(self):
         clients_data = dict()
@@ -48,29 +34,18 @@ class MultiParser:
                 clients_data[client]['markets_amt'] += 1
         return clients_data
 
-    async def create_and_await_ob_requests_tasks(self):
+    @staticmethod
+    async def fundings(client):
+        try:
+            return await client.get_fundings()
+        except Exception as error:
+            print(f'Exception из fundings, биржа:{client.__class__.__name__}, ошибка: {error}')
+            return ob_zero
+
+    async def create_and_await_fundings_requests_tasks(self):
         tasks_dict = {}
-        iter_start = datetime.utcnow()
-        total_delay = 0
-        for coin, symbols_client in self.markets.items():
-            coin_start = datetime.utcnow()
-            local_delay = 0
-            for symbol, client in symbols_client.items():
-                tasks_dict[client.__class__.__name__ + '__' + coin] = asyncio.create_task(self.ob_top(client, symbol))
-
-            delays = [self.clients_data[client]['delay'] for client in symbols_client.values()]
-            local_delay += max(delays)
-            total_delay += max(delays)
-            time.sleep(max(delays))
-            coin_end = datetime.utcnow()
-            # Лог для отладки:
-            # print(coin, '# clients:', len(symbols_client.values()), 'coin. delay: ', max(delays),
-            #       'Real Delay:', (coin_end - coin_start).total_seconds(), 'Sum of delays: ', local_delay)
-        iter_end = datetime.utcnow()
-        print('#Coins: ', len(self.markets), '# Clients - Markets: ', len(tasks_dict), 'Total real dur.:',
-              (iter_end - iter_start).total_seconds(),
-              'Total sum of delay: ', total_delay)
-
+        for client in self.clients_list:
+            tasks_dict[client.__class__.__name__] = asyncio.create_task(self.fundings(client))
         return await gather_dict(tasks_dict)
 
     @staticmethod
@@ -83,6 +58,27 @@ class MultiParser:
                 results[exchange_coin_key] = ob_zero
                 results[exchange_coin_key]['Status'] = 'Timeout'
         return results
+
+    @staticmethod
+    def reformat_data(fundings):
+        last_results = {}
+        for exchange, result in fundings.items():
+            last_timeframe = 0
+            print(result)
+            for timeframe, coins in result.items():
+                if float(timeframe) > float(last_timeframe):
+                    last_timeframe = timeframe
+            last_results.update({exchange: result[last_timeframe]})
+            if not last_results.get('next_funding_time'):
+                last_results['next_funding_time'] = {}
+            last_results['next_funding_time'].update({exchange: last_timeframe})
+        return last_results
+
+    def find_funding_AP(self, fundings):
+        for exchange_1, funding_1 in fundings:
+            for exchange_2, funding_2 in fundings:
+                if exchange_2 == exchange_1:
+                    continue
 
     # @staticmethod
     # def calculate_parse_time_and_sort(results):
@@ -105,15 +101,15 @@ class MultiParser:
             time_start_cycle = datetime.utcnow()
             print(f"Iteration {iteration} start. ", end=" ")
 
-            results = await self.create_and_await_ob_requests_tasks()
-            results = self.add_status(results)
-            logger.log_rates(iteration, results)
-            # parsing_time = self.calculate_parse_time_and_sort(results)
+            results = await self.create_and_await_fundings_requests_tasks()
+            results = self.reformat_data(results)
+
             print(results)
+
             print(f"Iteration  end. Duration.: {(datetime.utcnow() - time_start_cycle).total_seconds()}")
             iteration += 1
 
 
 if __name__ == '__main__':
-    parser = MultiParser()
+    parser = FundingParser()
     asyncio.run(parser.main())
