@@ -5,13 +5,19 @@ import time
 
 class Bigone:
     def __init__(self):
+        self.client_name = 'Bigone'
         self.headers = {"Content-Type": "application/json"}
         self.urlOrderbooks = f"https://big.one/api/v3/asset_pairs/"
         self.endOrderbook = "/depth"
         self.urlMarkets = f"https://big.one/api/v3/asset_pairs"
         self.markets = {}
-        self.fees = {'SPOT': {'Maker': {'LMCA': 0.2, 'Altkoins': 0.2}, 'Taker': {'LMCA': 0.2, 'Altkoins': 0.2}},
-                     'FUTURES': {'Maker': {'LMCA': 0.2, 'Altkoins': 0.2}, 'Taker': {'LMCA': 0.6, 'Altkoins': 0.6}}}
+        self.requestLimit = 1200
+        self.fees = 0.0006
+
+
+
+        # self.fees = {'SPOT': {'Maker': {'LMCA': 0.2, 'Altkoins': 0.2}, 'Taker': {'LMCA': 0.2, 'Altkoins': 0.2}},
+        #              'FUTURES': {'Maker': {'LMCA': 0.2, 'Altkoins': 0.2}, 'Taker': {'LMCA': 0.6, 'Altkoins': 0.6}}}
 
     def get_markets(self):
         markets = requests.get(url=self.urlMarkets, headers=self.headers).json()
@@ -46,5 +52,6 @@ async def main():
 if __name__ == "__main__":
     markets = Bigone()
     print(markets.get_markets())
-    print(markets.get_all_fees())
+    input('wait')
+    #print(markets.get_all_fees())
     asyncio.run(main())

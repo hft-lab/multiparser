@@ -5,15 +5,17 @@ import aiohttp
 
 class Coinstore:
     def __init__(self):
+        self.client_name = 'Coinstore'
         self.headers = {"Content-Type": "application/json"}
         self.urlOrderbooks = f"https://api.coinstore.com/api/v1/market/depth/"
         self.urlMarket = f"https://api.coinstore.com/api/v1/ticker/price"
-        self.fees = {'SPOT': {'Maker': 0.2, 'Taker': 0.2}, 'FUTURES': {'Maker': 0.00025, 'Taker': 0.0006}}
-        self.SAF = {'BTCUSDT', 'BOBCUSDT', 'LEGOUSDT', 'DREAMSUSDT', 'FEETUSDT',
-                    'CBYUSDT', 'LTCUSDT', 'XRPUSDT', 'ETHUSDT', 'BNBUSDT', 'TRXUSDT', 'LINKUSDT',
-                    'ADAUSDT', 'FILUSDT', 'FTMUSDT', 'CELRUSDT', 'MATICUSDT', 'CELOUSDT', 'AVAXUSDT',
-                    'SANDUSDT', 'DOTUSDT', 'AXSUSDT', 'BICOUSDT', 'DYDXUSDT', 'RACAUSDT',
-                    '1MWAGMIGAMESUSDT', 'DOGEUSDT', 'UNIUSDT'}  # SAF = Spot And Futures
+        self.fees = 0.0006
+        # self.fees = {'SPOT': {'Maker': 0.2, 'Taker': 0.2}, 'FUTURES': {'Maker': 0.00025, 'Taker': 0.0006}}
+        # self.SAF = {'BTCUSDT', 'BOBCUSDT', 'LEGOUSDT', 'DREAMSUSDT', 'FEETUSDT',
+        #             'CBYUSDT', 'LTCUSDT', 'XRPUSDT', 'ETHUSDT', 'BNBUSDT', 'TRXUSDT', 'LINKUSDT',
+        #             'ADAUSDT', 'FILUSDT', 'FTMUSDT', 'CELRUSDT', 'MATICUSDT', 'CELOUSDT', 'AVAXUSDT',
+        #             'SANDUSDT', 'DOTUSDT', 'AXSUSDT', 'BICOUSDT', 'DYDXUSDT', 'RACAUSDT',
+        #             '1MWAGMIGAMESUSDT', 'DOGEUSDT', 'UNIUSDT'}  # SAF = Spot And Futures
         self.futuresOnly = {'LTCUSDT', 'ETCUSDT', 'EOSUSDT', 'BCHUSDT', 'THETAUSDT', 'ATOMUSDT', 'HBARUSDT',
                         'KSMUSDT', 'ICPUSDT', '1MWAGMIGAMESUSDT', 'SOLUSDT'}
         self.markets = {}
@@ -22,7 +24,7 @@ class Coinstore:
     def get_markets(self):
         markets = requests.get(url=self.urlMarket, headers=self.headers).json()
         for market in markets['data']:
-            if 'USDT' in market['symbol']:
+            if ('USDT' in market['symbol']) and (float(market['price']) != 0):
                 coin = market['symbol'].split('USDT')[0]
                 self.markets.update({coin: market['symbol']})
         return(self.markets)
@@ -59,5 +61,6 @@ async def main():
 if __name__ == "__main__":
     markets = Coinstore()
     print(markets.get_markets())
-    print(markets.get_coin_fee('BTCUSDT'))
+    input('sdf')
+    #print(markets.get_coin_fee('BTCUSDT'))
     asyncio.run(main())

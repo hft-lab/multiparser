@@ -11,6 +11,7 @@ class DyDx():
         self.urlOrderbooks = "https://api.dydx.exchange/v3/orderbook/"
         self.fees = 0.0005
         self.requestLimit = 1050 #175 за 10 секунд https://dydxprotocol.github.io/v3-teacher/#rate-limit-api
+
         self.markets = {}
     def get_markets(self):
         markets = requests.get(url = self.urlMarkets, headers= self.headers).json()

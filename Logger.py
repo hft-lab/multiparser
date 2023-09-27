@@ -6,7 +6,7 @@ from datetime import datetime
 class Logging():
     def __init__(self):
         self.log_folder_name = 'Logs'
-        self.rates_log_file_name = 'rates_new.txt'
+        self.rates_log_file_name = 'rates.txt'
         self.rates_log_file_path = self.log_folder_name + "/" + self.rates_log_file_name
         self.launch_params_log_file_name = 'launch_params.txt'
         self.launch_params_log_file_path = self.log_folder_name + "/" + self.launch_params_log_file_name

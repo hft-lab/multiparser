@@ -3,23 +3,17 @@ import time
 from datetime import datetime
 import asyncio
 
-from Clients.kraken import Kraken
-from Clients.binance import Binance
-from Clients.bitfinex import Bitfinex
-from Clients.dydx import DyDx
-from Clients.bitspay import Bitspay
-from Clients.ascendex import Ascendex
-from Clients.bigone import Bigone
+from Clients.bigone import Bigone # все ок, лимиты хорошие
 
 
 async def main():
-    client = Bitfinex()
+    client = Bigone()
     try:
         markets_all = list(client.get_markets().values())
     except Exception as error:
         input('We are in BAN already, input smth to continue')
-    density = 1000  # requests per duration
-    duration = 30  # in seconds
+    density = 1200  # requests per duration
+    duration = 60  # in seconds
     markets = []
     print(
         f"Inputs: Exchange: {client.__class__.__name__}, Duration - {duration}, Density - {density}, Start DT: {datetime.utcnow()}")
