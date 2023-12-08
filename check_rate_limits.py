@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 import asyncio
 
-from Clients.bigone import Bigone # все ок, лимиты хорошие
+from clients.bigone import Bigone # все ок, лимиты хорошие
 
 
 async def main():
@@ -12,8 +12,8 @@ async def main():
         markets_all = list(client.get_markets().values())
     except Exception as error:
         input('We are in BAN already, input smth to continue')
-    density = 1200  # requests per duration
-    duration = 60  # in seconds
+    density = 100  # requests per duration
+    duration = 5  # in seconds
     markets = []
     print(
         f"Inputs: Exchange: {client.__class__.__name__}, Duration - {duration}, Density - {density}, Start DT: {datetime.utcnow()}")

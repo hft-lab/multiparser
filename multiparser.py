@@ -1,18 +1,15 @@
 import asyncio
 import time
-from Logger import Logging
+from logger import Logging
 from datetime import datetime
+from core.wrappers import timeit
 
-from Define_markets import coins_exchanges_symbol
+import configparser
 
-from Core import timeit
-from Core import gather_dict
+config = configparser.ConfigParser()
+config.read('config.ini', "utf-8")
 
-from Clients.kraken import Kraken
-from Clients.binance import Binance
-from Clients.dydx import DyDx
-from Clients.coinstore import Coinstore
-from Clients.bigone import Bigone
+from clients.all_clients import ALL_CLIENTS_DICT
 
 ob_zero = {'top_bid': 0, 'top_ask': 0, 'bid_vol': 0, 'ask_vol': 0, 'ts_exchange': 0, 'ts_start': 0, 'ts_end': 0}
 
@@ -20,9 +17,26 @@ ob_zero = {'top_bid': 0, 'top_ask': 0, 'bid_vol': 0, 'ask_vol': 0, 'ts_exchange'
 class MultiParser:
 
     def __init__(self):
-        self.clients_list = [DyDx(), Kraken(), Binance(),Coinstore(), Bigone()]#, Bitfinex()]  # , Bitspay(), Ascendex()]
-        self.markets = coins_exchanges_symbol(self.clients_list)  # {coin: {client:symbol,...},...}
+        self.exchanges = config['SETTINGS']['EXCHANGES'].split(',')
+        self.clients = []
+        for exchange in self.exchanges:
+            client = ALL_CLIENTS_DICT[exchange]()
+            self.clients.append(client)
+        self.markets = self.coins_exchanges_symbol()
         self.clients_data = self.get_clients_data()
+
+    def get_clients_data(self):
+        clients_data = dict()
+        for client in self.clients:
+            clients_data[client] = {'markets_amt': 0,'min_duration':0,
+                                    'rate_per_minute': client.requestLimit,
+                                    'delay': round(60 / client.requestLimit, 3)}
+        for coin, clients_symbol in self.markets.items():
+            for client in clients_symbol:
+                clients_data[client]['markets_amt'] += 1
+        for client in self.clients:
+            clients_data[client]['min_duration'] = round(clients_data[client]['markets_amt']*clients_data[client]['delay'],2)
+        return clients_data
 
     @staticmethod
     @timeit
@@ -32,20 +46,6 @@ class MultiParser:
         except Exception as error:
             print(f'Exception из ob_top, биржа:{client.__class__.__name__}, рынок: {symbol}, ошибка: {error}')
             return {}
-
-    def get_clients_data(self):
-        clients_data = dict()
-        for client in self.clients_list:
-            clients_data[client] = {'markets_amt': 0,'min_duration':0,
-                                    'rate_per_minute': client.requestLimit,
-                                    'delay': round(60 / client.requestLimit, 3)}
-        for coin, clients_symbol in self.markets.items():
-            for client in clients_symbol:
-                clients_data[client]['markets_amt'] += 1
-        for client in self.clients_list:
-            clients_data[client]['min_duration'] = round(clients_data[client]['markets_amt']*clients_data[client]['delay'],2)
-        return clients_data
-
 
 
     async def create_and_await_ob_requests_tasks(self):
@@ -68,11 +68,11 @@ class MultiParser:
             # print(coin, '# clients:', len(symbols_client.values()), 'coin. delay: ', max(delays),
             #       'Real Delay:', (coin_end - coin_start).total_seconds(), 'Sum of delays: ', local_delay)
         iter_end = datetime.utcnow()
-        print('#Coins: ', len(self.markets), '# Clients - Markets: ', len(tasks_dict), 'Total real dur.:',
+        print('#Coins: ', len(self.markets), '# clients - Markets: ', len(tasks_dict), 'Total real dur.:',
               (iter_end - iter_start).total_seconds(),
               'Total sum of delay: ', round(total_delay,2))
 
-        return await gather_dict(tasks_dict)
+        return await self.gather_dict(tasks_dict)
 
     @staticmethod
     def add_status(results):
@@ -88,7 +88,7 @@ class MultiParser:
 
     async def main(self):
         logger = Logging()
-        logger.log_launch_params(self.clients_list)
+        logger.log_launch_params(self.clients)
 
         # Принтим показатели клиентов - справочно
         for client, value in self.clients_data.items():
@@ -104,6 +104,49 @@ class MultiParser:
             logger.log_rates(iteration, results)
             print(f"Iteration  end. Duration.: {(datetime.utcnow() - time_start_cycle).total_seconds()}")
             iteration += 1
+
+    def coins_exchanges_symbol(self)-> dict:
+        clients_coins_symbol = dict()
+        coin_exception = ['VOLT']
+        # Собираем справочник: {client_name:{coin1:symbol1, ...},...}
+        for client in self.clients:
+            try:
+                clients_coins_symbol[client] = client.get_markets()
+            except Exception as error:
+                print(
+                    f'Ошибка 0 в модуле Define_markets, client: {client.client_name}, error: {error}')
+
+        # Меняем порядок ключей в справочнике
+        coins_clients_symbol = dict()
+        for client, coins_symbol in clients_coins_symbol.items():
+            try:
+                for coin, symbol in coins_symbol.items():
+                    if coin in coin_exception:
+                        pass
+                    elif coin in coins_clients_symbol.keys():
+                        coins_clients_symbol[coin].update({client: symbol})
+                    else:
+                        coins_clients_symbol[coin] = {client: symbol}
+            except Exception as error:
+                input(f"Ошибка 1 в модуле Define_markets: {coins_symbol},{client.client_name}. Error: {error}")
+
+        # Удаляем монеты с единственным маркетом
+        for coin, clients_symbol in coins_clients_symbol.copy().items():
+            if len(clients_symbol) == 1:
+                del coins_clients_symbol[coin]
+        return coins_clients_symbol # Output format {coin: {client:symbol,...},...}
+    @staticmethod
+    async def gather_dict(tasks: dict):
+        async def mark(key, coro):
+            try:
+                return key, await coro
+            except:
+                return key, dict()
+
+        return {
+            key: result
+            for key, result in await asyncio.gather(*(mark(key, coro) for key, coro in tasks.items()))
+        }
 
 
 if __name__ == '__main__':

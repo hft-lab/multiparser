@@ -19,7 +19,6 @@ class DyDx():
             if value['quoteAsset'] == 'USD':
                 coin = value['baseAsset']
                 self.markets.update({coin: market})
-        print
         return self.markets
 
 

@@ -2,14 +2,16 @@ import asyncio
 import aiohttp
 import time
 import requests
+from ..core.base_parser_client import BaseClient
 from datetime import datetime
 
 
 # https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md#exchange-information
 # https://developers.binance.com/docs/derivatives/usds-margined-futures/market-data/Exchange-Information
 
-class Binance:
+class Binance(BaseClient):
     def __init__(self):
+        super().__init__()
         self.client_name='Binance'
         self.headers = {"Content-Type": "application/json"}
         self.urlOrderbooks = "https://fapi.binance.com/fapi/v1/depth?limit=5&symbol="

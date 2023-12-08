@@ -15,7 +15,7 @@ class Coinstore:
         #             'CBYUSDT', 'LTCUSDT', 'XRPUSDT', 'ETHUSDT', 'BNBUSDT', 'TRXUSDT', 'LINKUSDT',
         #             'ADAUSDT', 'FILUSDT', 'FTMUSDT', 'CELRUSDT', 'MATICUSDT', 'CELOUSDT', 'AVAXUSDT',
         #             'SANDUSDT', 'DOTUSDT', 'AXSUSDT', 'BICOUSDT', 'DYDXUSDT', 'RACAUSDT',
-        #             '1MWAGMIGAMESUSDT', 'DOGEUSDT', 'UNIUSDT'}  # SAF = Spot And Futures
+        #             '1MWAGMIGAMESUSDT', 'DOGEUSDT', 'UNIUSDT'}  # SAF = spot_clients And Futures
         self.futuresOnly = {'LTCUSDT', 'ETCUSDT', 'EOSUSDT', 'BCHUSDT', 'THETAUSDT', 'ATOMUSDT', 'HBARUSDT',
                         'KSMUSDT', 'ICPUSDT', '1MWAGMIGAMESUSDT', 'SOLUSDT'}
         self.markets = {}
