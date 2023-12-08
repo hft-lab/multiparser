@@ -1,10 +1,12 @@
 import asyncio
 import aiohttp
 import requests
+from ..core.base_parser_client import BaseClient
 from datetime import datetime
 
-class DyDx():
+class DyDx(BaseClient):
     def __init__(self):
+        super().__init__()
         self.client_name = 'DyDx'
         self.headers = {"Content-Type": "application/json"}
         self.urlMarkets = "https://api.dydx.exchange/v3/markets/"
@@ -25,13 +27,16 @@ class DyDx():
     async def get_orderbook(self, symbol):
         async with aiohttp.ClientSession() as session:
             async with session.get(self.urlOrderbooks + symbol) as response:
-                ob = await response.json()
-                try:
-                    return {'top_bid': ob['bids'][0]['price'], 'top_ask': ob['asks'][0]['price'],
-                            'bid_vol': ob['bids'][0]['size'], 'ask_vol': ob['asks'][0]['size'],
-                            'ts_exchange': 0}
-                except Exception as error:
-                    print(f"Error from DyDx Module, symbol: {symbol}, error: {error}")
+                if response.status == 200:
+                    try:
+                        ob = await response.json()
+                        return {'top_bid': ob['bids'][0]['price'], 'top_ask': ob['asks'][0]['price'],
+                                'bid_vol': ob['bids'][0]['size'], 'ask_vol': ob['asks'][0]['size'],
+                                'ts_exchange': 0}
+                    except Exception as error:
+                        return self.proceed_ob_parse_exception(symbol, error)
+                else:
+                    return self.proceed_exchange_connection_exception(symbol, code=response.status, text=str(response.json()))
 
 async def main():
     pass

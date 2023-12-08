@@ -2,15 +2,17 @@ import requests
 import aiohttp
 import asyncio
 import time
+from ..core.base_parser_client import BaseClient
 
-class Woo:
+class Woo(BaseClient):
     def __init__(self):
+        super().__init__()
         self.headers = {"Content-Type": "application/json"}
         self.urlOrderbooks = f"https://api.woo.org/v1/public/orderbook/"
         self.urlMarkets = f"https://api.woo.org/v1/public/info"
         self.markets = {}
         self.fees = {"Maker": 0.05, "Taker": 0.05}
-        self.requestLimit = 5  # ban on iteration 6
+        self.requestLimit = 2000  #
 
     def get_markets(self):
         markets = requests.get(url=self.urlMarkets, headers=self.headers).json()
@@ -27,11 +29,16 @@ class Woo:
     async def get_orderbook(self, symbol):
         async with aiohttp.ClientSession() as session:
             async with session.get(self.urlOrderbooks + symbol) as response:
-                ob = await response.json()
-                # print(ob)
-        return {"top_ask": ob['asks'][0]['price'], "ask_vol": ob['asks'][0]['quantity'],
-                "top_bid": ob['bids'][0]['price'], "bid_vol": ob['bids'][0]['quantity'],
-                "ts_exchange": ob['timestamp']}
+                if response.status == 200:
+                    try:
+                        ob = await response.json()
+                        return {"top_ask": ob['asks'][0]['price'], "ask_vol": ob['asks'][0]['quantity'],
+                                "top_bid": ob['bids'][0]['price'], "bid_vol": ob['bids'][0]['quantity'],
+                                "ts_exchange": ob['timestamp']}
+                    except Exception as error:
+                        return self.proceed_ob_parse_exception(symbol, error)
+                else:
+                    return self.proceed_exchange_connection_exception(symbol, code=response.status, text=str(response.json()))
 
 async def main():
     orderbook = Woo()

@@ -37,11 +37,13 @@ class Ascendex:
 
 async def main():
     client = Ascendex()
+    client.get_markets()
+    # symbol = 'DOGE/USDT'
     # print(client.get_markets())
-    symbol = 'DOGE/USDT'
-    result = asyncio.create_task(client.get_orderbook(symbol))
-    print(await result)
-    time.sleep(1)
+    # input('hi')
+    # result = asyncio.create_task(client.get_orderbook(symbol))
+    # print(await result)
+    # time.sleep(1)
 
 if __name__ == "__main__":
     asyncio.run(main())

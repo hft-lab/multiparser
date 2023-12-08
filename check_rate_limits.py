@@ -3,17 +3,17 @@ import time
 from datetime import datetime
 import asyncio
 
-from clients.bigone import Bigone # все ок, лимиты хорошие
+from clients.perp_clients.ascendex import Ascendex # все ок, лимиты хорошие
 
 
 async def main():
-    client = Bigone()
+    client = Ascendex()
     try:
         markets_all = list(client.get_markets().values())
     except Exception as error:
         input('We are in BAN already, input smth to continue')
-    density = 100  # requests per duration
-    duration = 5  # in seconds
+    density = 2000  # requests per duration
+    duration = 30  # in seconds
     markets = []
     print(
         f"Inputs: Exchange: {client.__class__.__name__}, Duration - {duration}, Density - {density}, Start DT: {datetime.utcnow()}")
@@ -42,12 +42,14 @@ async def main():
     i = 0
     success = 0
     problem_requests = {}
+
     for result in results:
-        i += 1
         try:
             if type(result) not in (dict, IndexError):
+
                 real_work_time = (time_list[i] - start_dt).total_seconds()
                 problem_requests.update({'request': i, 'duration': real_work_time, 'result': result})
+                break
             else:
                 success += 1
 
@@ -58,16 +60,12 @@ async def main():
             input('Press enter, to see details')
             print(f'{result} error: {error}')
             input('Stop')
+        i += 1
     time.sleep(1)
     print(f'Inputs: Duration - {duration}, Density - {density}. Outputs: Success response - {success}. '
           f'Real requests per minute: {round(density * 60 / real_create_time)} is OK. ')
-    j = 0
-    if len(problem_requests)>0:
-        print('Have following problems (top)')
-        for problem in problem_requests:
-            if j < 3:
-                print(problem)
-            j += 1
+
+    print(problem_requests)
 
 
 if __name__ == '__main__':
