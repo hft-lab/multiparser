@@ -7,13 +7,14 @@ from clients.perp_clients.wooX import Woo
 
 async def main():
     client = Woo()
-    print(json.dumps(client.get_markets(), indent=2))
-    symbol = 'SPOT_ZRX_USDT'
-    #input('symbol:')
-    for i in range(1000):
-        ob = await client.get_orderbook(symbol=symbol)
-        print(ob)
+    # print(json.dumps(client.get_markets(), indent=2))
+    symbol = 'PERP_AAVE_USDT'
+    ob = await client.get_orderbook(symbol=symbol)
+    # for i in range(1000):
+    #     ob = await client.get_orderbook(symbol=symbol)
+    #
     await asyncio.sleep(1)
+    print(ob)
 
     # # print(json.dumps(ob, indent=2))
 

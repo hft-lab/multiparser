@@ -23,7 +23,10 @@ class Logging():
                 bid_vol, ask_vol = ob['bid_vol'], ob['ask_vol']
                 ts_start, ts_end = ob['ts_start'], ob['ts_end']
                 utc_start_time = datetime.utcfromtimestamp(ts_start/1000).strftime("%Y-%m-%d %H:%M:%S")
-                status = ob['Status']
+                try:
+                    status = ob['Status']
+                except:
+                    print(exchange, coin, ob)
                 string_to_log =\
                     f"{self.launch_id},{iteration},{coin},ask,{exchange}," \
                     f"{top_ask},{utc_start_time},{round((ts_end - ts_start) / 1000,2)},{ask_vol},{status}\n"\

@@ -32,7 +32,7 @@ class Ascendex:
                 ob = await response.json()
         return {'top_ask': ob["data"]["data"]["asks"][0][0], 'ask_vol': ob["data"]["data"]["asks"][0][1],
                 'top_bid': ob["data"]["data"]["bids"][0][0], 'bid_vol': ob["data"]["data"]["bids"][0][1],
-                'ts_exchange': ob["data"]["data"]["ts"]}
+                'ts_exchange': ob["data"]["data"]["ts"],'Status':'OK'}
         # return ob
 
 async def main():

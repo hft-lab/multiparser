@@ -27,22 +27,23 @@ class Telegram:
     def __init__(self):
         self.tg_url = "https://api.telegram.org/bot"
         self.TG_DEBUG = bool(int(config['TELEGRAM']['TG_DEBUG']))
+        self.env = str(config['SETTINGS']['ENV'])
 
     def send_message(self, message: str, tg_group_obj: TG_Groups = None):
         if (not self.TG_DEBUG) and ((tg_group_obj is None) or (tg_group_obj == TG_Groups.DebugDima)):
             print('TG_DEBUG IS OFF')
         else:
             group = tg_group_obj if tg_group_obj else TG_Groups.DebugDima
-            print(group)
             url = self.tg_url + group['bot_token'] + "/sendMessage"
-            message_data = {"chat_id": group['chat_id'], "parse_mode": "HTML", "text": "<pre>" + str(message) + "</pre>"}
+            message_data = {"chat_id": group['chat_id'], "parse_mode": "HTML",
+                            "text": f"<pre>ENV: {self.env} \n{str(message)}</pre>"}
             try:
                 r = requests.post(url, json=message_data)
                 return r.json()
             except Exception as e:
                 return e
 
+
 if __name__ == '__main__':
     tg = Telegram()
-    tg.send_message('Hi Dima')
-
+    # tg.send_message('Hi Dima')

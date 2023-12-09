@@ -32,11 +32,11 @@ class DyDx(BaseClient):
                         ob = await response.json()
                         return {'top_bid': ob['bids'][0]['price'], 'top_ask': ob['asks'][0]['price'],
                                 'bid_vol': ob['bids'][0]['size'], 'ask_vol': ob['asks'][0]['size'],
-                                'ts_exchange': 0}
+                                'ts_exchange': 0,'Status':'OK'}
                     except Exception as error:
-                        return self.proceed_ob_parse_exception(symbol, error)
+                        return self.ob_parsing_exception(symbol, error)
                 else:
-                    return self.proceed_exchange_connection_exception(symbol, code=response.status, text=str(response.json()))
+                    return await self.exchange_connection_exception(symbol, code=response.status, text=str(response.json()))
 
 async def main():
     pass

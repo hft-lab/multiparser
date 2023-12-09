@@ -3,7 +3,7 @@ import time
 from logger import Logging
 from datetime import datetime
 from core.wrappers import timeit
-
+from core.telegram import Telegram
 import configparser
 
 config = configparser.ConfigParser()
@@ -17,13 +17,18 @@ ob_zero = {'top_bid': 0, 'top_ask': 0, 'bid_vol': 0, 'ask_vol': 0, 'ts_exchange'
 class MultiParser:
 
     def __init__(self):
+        self.logger = Logging()
         self.exchanges = config['SETTINGS']['EXCHANGES'].split(',')
         self.clients = []
         for exchange in self.exchanges:
             client = ALL_CLIENTS_DICT[exchange]()
             self.clients.append(client)
+        self.logger.log_launch_params(self.clients)
         self.markets = self.coins_exchanges_symbol()
         self.clients_data = self.get_clients_data()
+        self.telegram = Telegram()
+
+
 
     def get_clients_data(self):
         clients_data = dict()
@@ -38,13 +43,14 @@ class MultiParser:
             clients_data[client]['min_duration'] = round(clients_data[client]['markets_amt']*clients_data[client]['delay'],2)
         return clients_data
 
-    @staticmethod
     @timeit
-    async def ob_top(client, symbol):
+    async def ob_top(self, client, symbol):
         try:
             return await client.get_orderbook(symbol)
         except Exception as error:
-            print(f'Exception из ob_top, биржа:{client.__class__.__name__}, рынок: {symbol}, ошибка: {error}')
+            message = f'Exception из ob_top, биржа:{client.__class__.__name__}, рынок: {symbol}, ошибка: {str(error)}'
+            print(message)
+            self.telegram.send_message(message)
             return {}
 
 
@@ -74,36 +80,6 @@ class MultiParser:
 
         return await self.gather_dict(tasks_dict)
 
-    @staticmethod
-    def add_status(results):
-        for exchange_coin_key, value in results.items():
-            if results[exchange_coin_key].get('top_ask') is not None:
-                results[exchange_coin_key]['Status'] = 'Ok'
-                # counter_success += 1
-            else:
-                results[exchange_coin_key] = ob_zero
-                print(exchange_coin_key,'Exchange_error')
-                results[exchange_coin_key]['Status'] = 'Exchange_error'
-        return results
-
-    async def main(self):
-        logger = Logging()
-        logger.log_launch_params(self.clients)
-
-        # Принтим показатели клиентов - справочно
-        for client, value in self.clients_data.items():
-            print(f"{client.client_name} : {value}")
-        iteration = 0
-
-        while True:
-            time_start_cycle = datetime.utcnow()
-            print(f"Iteration {iteration} start. ", end=" ")
-
-            results = await self.create_and_await_ob_requests_tasks()
-            results = self.add_status(results)
-            logger.log_rates(iteration, results)
-            print(f"Iteration  end. Duration.: {(datetime.utcnow() - time_start_cycle).total_seconds()}")
-            iteration += 1
 
     def coins_exchanges_symbol(self)-> dict:
         clients_coins_symbol = dict()
@@ -147,6 +123,22 @@ class MultiParser:
             key: result
             for key, result in await asyncio.gather(*(mark(key, coro) for key, coro in tasks.items()))
         }
+
+    async def main(self):
+
+
+        # Принтим показатели клиентов - справочно
+        for client, value in self.clients_data.items():
+            print(f"{client.client_name} : {value}")
+        iteration = 0
+
+        while True:
+            time_start_cycle = datetime.utcnow()
+            print(f"Iteration {iteration} start. ", end=" ")
+            results = await self.create_and_await_ob_requests_tasks()
+            #self.logger.log_rates(iteration, results)
+            print(f"Iteration  end. Duration.: {(datetime.utcnow() - time_start_cycle).total_seconds()}")
+            iteration += 1
 
 
 if __name__ == '__main__':

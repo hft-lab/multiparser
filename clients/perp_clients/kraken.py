@@ -38,11 +38,11 @@ class Kraken(BaseClient):
                             datetime.datetime.strptime(full_response['serverTime'], "%Y-%m-%dT%H:%M:%S.%fZ").timestamp() * 1000)
                         return {'top_bid': ob['bids'][0][0], 'top_ask': ob['asks'][0][0],
                                 'bid_vol': ob['bids'][0][1], 'ask_vol': ob['asks'][0][1],
-                                'ts_exchange': ts_exchange}
+                                'ts_exchange': ts_exchange,'Status':'OK'}
                     except Exception as error:
-                        return self.proceed_ob_parse_exception(symbol, error)
+                        return self.ob_parsing_exception(symbol, error)
                 else:
-                    return self.proceed_exchange_connection_exception(symbol, code=response.status, text=str(response.json()))
+                    return await self.exchange_connection_exception(symbol, code=response.status, text=str(response.json()))
 
 async def main():
     client = Kraken()
