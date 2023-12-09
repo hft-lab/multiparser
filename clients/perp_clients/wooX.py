@@ -2,20 +2,21 @@ import requests
 import aiohttp
 import asyncio
 import time
-from ..core.base_parser_client import BaseClient, ClientState
+from ..core.base_parser_client import BaseClient, ClientState, GetOrderbookErrors
+import configparser
 
+config = configparser.ConfigParser()
+config.read('config.ini', "utf-8")
 
 class Woo(BaseClient):
     def __init__(self):
         super().__init__()
-        self.client_name = 'Woo'
+        self.client_name = 'WOO'
         self.headers = {"Content-Type": "application/json"}
         self.urlOrderbooks = f"https://api.woo.org/v1/public/orderbook/"
         self.urlMarkets = f"https://api.woo.org/v1/public/info"
-        self.markets = {}
-        self.fees = {"Maker": 0.05, "Taker": 0.05}
-        self.requestLimit = 2000  #
-        self.state = ClientState.ACTIVE
+        self.fees = float(config[self.client_name]['FEES'])
+        self.requestLimit = int(config[self.client_name]['REQUESTS_LIMIT'])
 
 
     def get_markets(self):
@@ -44,16 +45,19 @@ class Woo(BaseClient):
                                     "top_bid": ob['bids'][0]['price'], "bid_vol": ob['bids'][0]['quantity'],
                                     "ts_exchange": ob['timestamp'], 'Status': 'OK'}
                         except Exception as error:
-                            return self.ob_parsing_exception(symbol, error)
+                            self.error_notification(error=GetOrderbookErrors.OB_PARSING, error_text=str(ob))
+                            self.state = ClientState.PAUSE
+                            return {'Status': GetOrderbookErrors.OB_PARSING, 'Error': str(error)}
                     else:
-                        error_text = await response.json()
                         if response.status == 429:
-                            self.change_state(ClientState.PAUSE, self.client_name,str(error_text))
-                            return self.request_limit_exception(code=response.status,text=str(error_text))
-
+                            error = GetOrderbookErrors.RATE_LIMIT
                         else:
-                            return self.exchange_connection_exception(symbol, code=response.status,
-                                                                        text=str(error_text))
+                            error = GetOrderbookErrors.OTHER_EXCH_ERRORS
+                        error_text = await response.json()
+                        error_text = str(error_text) + f'\nResponse code: {response.status}'
+                        self.error_notification(error, error_text)
+                        self.state = ClientState.PAUSE
+                        return {'Status': error, 'Code': response.status, 'Text': str(error_text)}
         else:
             return {}
 

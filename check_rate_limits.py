@@ -9,9 +9,9 @@ from clients.all_clients import ALL_CLIENTS_DICT
 
 class Check_limit():
     def __init__(self):
-        self.client = ALL_CLIENTS_DICT['WOO']()
-        self.density = 5  # requests per duration
-        self.duration = 3  # in seconds
+        self.client = ALL_CLIENTS_DICT['KRAKEN']()
+        self.density = 5000  # requests per duration
+        self.duration = 60  # in seconds
         print(f"Inputs: Exchange: {self.client.client_name}, Duration - {self.duration}, "
               f"Density - {self.density}, Start DT: {datetime.utcnow()}")
 
@@ -55,7 +55,7 @@ class Check_limit():
                 print(f'{json.dumps(result, indent=2)} error: {error}')
                 break
         if success_counter == self.density:
-            print('все запросы успешно отработаны')
+            print('Все запросы успешно отработаны')
 
     async def main(self):
         markets = []

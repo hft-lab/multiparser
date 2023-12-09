@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 from logger import Logging
 from datetime import datetime
@@ -136,7 +137,7 @@ class MultiParser:
             time_start_cycle = datetime.utcnow()
             print(f"Iteration {iteration} start. ", end=" ")
             results = await self.create_and_await_ob_requests_tasks()
-            #self.logger.log_rates(iteration, results)
+            self.logger.log_rates(iteration, results)
             print(f"Iteration  end. Duration.: {(datetime.utcnow() - time_start_cycle).total_seconds()}")
             iteration += 1
 
